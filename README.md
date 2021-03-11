@@ -7,8 +7,8 @@ This project implements a file system in the Pintos with features like Buffer Ca
 
 
 
-**Task 1 – Buffer Cache**
-
+****Task 1 – Buffer Cache**
+**
 
 **Buffer Cache Structure**
 
@@ -220,9 +220,8 @@ for unnecessary writes back to disk.
 
 
 
-Task 2 – Extensible Files
+****Task 2 – Extensible Files****
 
-Data Structures
 
 We modify the struct inode\_disk, such that it contains multiple direct data blocks (inode disks)
 
@@ -344,17 +343,13 @@ smaller sized files, while still being able to accommodate larger files.
 
 
 
-Task 3 – Subdirectories
-
-Data Structures
+****Task 3 – Subdirectories****
 
 We modify struct thread to include a char array of the absolute path of the current working
 
 directory. We also create a new field called curr\_inode to keep track of the current working
 
-directory’s inode.
-
-In directory.c, we make modifications to the struct dir\_entry and struct file to include a boolean
+directory’s inode. In directory.c, we make modifications to the struct dir\_entry and struct file to include a boolean
 
 flag isDir. This indicates whether the file/directory entry is a directory, which will be useful as
 

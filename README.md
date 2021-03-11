@@ -2,93 +2,6 @@
 This project implements a file system in the Pintos with features like Buffer Cache, Indexed and Extensible Files using inode structure, and Subdirectories.
 
 
-
-**CS 162 – Operating Systems**
-
-**Project 32 Design Document**
-
-**Group 42**
-
-**Task 1 – Buffer Cache**
-
-**2**
-
-2
-
-2
-
-4
-
-4
-
-Data Structures
-
-Algorithms
-
-Synchronization
-
-Rationale
-
-**Task 2 – Extensible Files**
-
-Data Structures
-
-Algorithms
-
-**5**
-
-5
-
-5
-
-6
-
-6
-
-Synchronization
-
-Rationale
-
-**Task 3 – Subdirectories**
-
-Data Structures
-
-Algorithm
-
-**7**
-
-7
-
-7
-
-Directory Traversal Algorithm
-
-7
-
-New Syscalls Implementation
-
-Updates to Existing Syscalls
-
-Synchronization
-
-8
-
-9
-
-10
-
-10
-
-Rationale
-
-**Additional Questions**
-
-**11**
-
-
-
-
-
 Task 1 – Buffer Cache
 
 Data Structures
@@ -109,29 +22,29 @@ the data, and a flag that indicates whether this block is dirty. We also have a 
 
 synchronization between threads when accessing the cached block.
 
-struct buffer\_cache {
+        struct buffer\_cache {
 
-struct list cached\_inodes; // ordered by earliest access first
+          struct list cached\_inodes; // ordered by earliest access first
 
-struct lock cached\_inode\_lock;
+          struct lock cached\_inode\_lock;
 
-int buffer\_size;
+          int buffer\_size;
 
-}
+        }
 
-struct buffer\_cache\_item {
+        struct buffer\_cache\_item {
 
-list\_elem buffer\_elem;
+          list\_elem buffer\_elem;
 
-block\_sector\_t sector; // inode number
+          block\_sector\_t sector; // inode number
 
-byte data[BLOCK\_SECTOR\_SIZE];
+          byte data[BLOCK\_SECTOR\_SIZE];
 
-bool isDirty;
+          bool isDirty;
 
-struct lock buffer\_cache\_item\_lock;
+          struct lock buffer\_cache\_item\_lock;
 
-}
+        }
 
 Algorithms
 
@@ -145,17 +58,17 @@ In order to decide when we need to evict buffer\_cache\_item structs from the ca
 
 in buffer\_cache struct, we use the following algorithm whenever we need to add a new buffer:
 
-● We check if the size of the caches\_inodes list is size == 64
+  ● We check if the size of the caches\_inodes list is size == 64
 
-● If size == 64, we evict the buffer cache item at the head (front) of the buffer\_cache’s list
+  ● If size == 64, we evict the buffer cache item at the head (front) of the buffer\_cache’s list
 
-● After removing the buffer\_cache\_item, we check the evicted buffer\_cache\_item->isDirty
-
-
+  ● After removing the buffer\_cache\_item, we check the evicted buffer\_cache\_item->isDirty
 
 
 
-● If the buffer\_cache\_item’s isDirty flag is TRUE, we call block\_write() to write back to disk
+
+
+  ● If the buffer\_cache\_item’s isDirty flag is TRUE, we call block\_write() to write back to disk
 
 We are hence evicting based on the LRU replacement policy and have designed the cache as a
 
@@ -163,141 +76,139 @@ write-back cache.
 
 **Updates to inode\_reopen & inode\_open**
 
-● We check if the buffer\_cache\_item is inside the buffer\_cache’s list
+  ● We check if the buffer\_cache\_item is inside the buffer\_cache’s list
 
-○ We find the buffer\_cache\_item in the cached\_inodes list by checking if
+    ○ We find the buffer\_cache\_item in the cached\_inodes list by checking if
 
-buffer\_cache\_item->sector is the same as the the output of inode\_get\_inumber()
+    buffer\_cache\_item->sector is the same as the the output of inode\_get\_inumber()
 
-of the concerned inode
+    of the concerned inode
 
-● If it IS NOT inside the buffer cache’s list
+  ● If it IS NOT inside the buffer cache’s list
 
-○ We create a new buffer\_cache\_tem struct and initialize the struct
+    ○ We create a new buffer\_cache\_tem struct and initialize the struct
 
-○ We byte\_read into the byte[] data block inside the buffer\_cache\_item struct, and
+    ○ We byte\_read into the byte[] data block inside the buffer\_cache\_item struct, and
 
-then memcpy the data into the caller’s buffer from our buffer\_cache\_item
+    then memcpy the data into the caller’s buffer from our buffer\_cache\_item
 
-○ Then we continue our algorithm as if the inode is inside the buffer\_cache’s list
+    ○ Then we continue our algorithm as if the inode is inside the buffer\_cache’s list
 
-● If it IS inside the buffer\_cache’s cached\_inodes list
+  ● If it IS inside the buffer\_cache’s cached\_inodes list
 
-○ We pop the buffer\_cache\_item
+    ○ We pop the buffer\_cache\_item
 
-○ We push the recently popped buffer\_cache\_item back to the back (push\_back)
+    ○ We push the recently popped buffer\_cache\_item back to the back (push\_back)
 
 **Updates to inode\_read\_at**
 
-● In the while loop that is used to read from disk, we check if the sector\_idx is in the cache.
+  ● In the while loop that is used to read from disk, we check if the sector\_idx is in the cache.
 
-● If sector\_idx is available in cache, we skip the block read in inode’s block\_read in
+  ● If sector\_idx is available in cache, we skip the block read in inode’s block\_read in
 
-inode\_read\_at() and rather return the information from the buffer\_cache to the caller’s
+  inode\_read\_at() and rather return the information from the buffer\_cache to the caller’s
 
-buffer.
+  buffer.
 
-● If sector\_idx is not available in cache, we perform the following steps:
+  ● If sector\_idx is not available in cache, we perform the following steps:
 
-○ Read the block from disk using the block\_read function in block.c
+    ○ Read the block from disk using the block\_read function in block.c
 
-○ Check if an item needs to be evicted from the buffer\_cache’s cached\_inodes list,
+    ○ Check if an item needs to be evicted from the buffer\_cache’s cached\_inodes list,
 
-and take the appropriate steps using the Buffer Eviction Algorithm mentioned
+    and take the appropriate steps using the Buffer Eviction Algorithm mentioned
 
-above.
+    above.
 
-○ Store the read block in the buffer cache
+    ○ Store the read block in the buffer cache
 
-○ Run this algorithm as if the block is available in cache
+    ○ Run this algorithm as if the block is available in cache
 
-● Write the desired bytes into the buffer that was provided for output in the block\_read call
+  ● Write the desired bytes into the buffer that was provided for output in the block\_read call
 
 **Updates to inode\_write\_at**
 
-● In the while loop that is used to read from disk, check if the sector\_idx is in the cache.
+  ● In the while loop that is used to read from disk, check if the sector\_idx is in the cache.
 
-● If sector\_idx is available in the cache, we perform the following steps:
+  ● If sector\_idx is available in the cache, we perform the following steps:
 
-○ Edit the appropriate bytes of the block in the cache
+    ○ Edit the appropriate bytes of the block in the cache
 
-○ Mark the block as dirty (for write to disk during eviction)
+    ○ Mark the block as dirty (for write to disk during eviction)
 
-● If sector\_idx is not available in the cache, we perform the following steps:
+  ● If sector\_idx is not available in the cache, we perform the following steps:
 
-○ Read the block from disk using the block\_read function in block.c
+    ○ Read the block from disk using the block\_read function in block.c
 
-○ Store the read block in the buffer cache
+    ○ Store the read block in the buffer cache
 
-○ Run the write algorithm as if the block is available in cache
+    ○ Run the write algorithm as if the block is available in cache
 
-○ Mark the block as dirty (for write to disk during eviction)
+    ○ Mark the block as dirty (for write to disk during eviction)
 
-● Return the bytes written into the block
-
-
+  ● Return the bytes written into the block
 
 
 
 **Updates to inode\_close**
 
-● If the inode we are closing is dirty, we block\_write the contents from the buffer
+  ● If the inode we are closing is dirty, we block\_write the contents from the buffer
 
 **Updates to filesys\_done**
 
-● We flush out all dirty buffer\_cache\_item data
+  ● We flush out all dirty buffer\_cache\_item data
 
 **Updates to inumber(int fd)**
 
-● From project 1 we are able to get the associated file for a given fd using lookup\_fd().
+  ● From project 1 we are able to get the associated file for a given fd using lookup\_fd().
 
-This returns the associated file descriptor struct, which contains the file struct of the
+  This returns the associated file descriptor struct, which contains the file struct of the
 
-given fd. In the file struct, we have the associated inode. Given this inode, we can return
+  given fd. In the file struct, we have the associated inode. Given this inode, we can return
 
-the unique inode number of the given fd.
+  the unique inode number of the given fd.
 
-Synchronization
+  Synchronization
 
-○ In all inode functions where we are accessing/modifying the buffer\_cache’s
+    ○ In all inode functions where we are accessing/modifying the buffer\_cache’s
 
-cached\_inodes list, we acquire buffer\_cache’s cached\_inode\_lock at the start of the
+    cached\_inodes list, we acquire buffer\_cache’s cached\_inode\_lock at the start of the
 
-function call, and release the lock at the end of the function call.
+    function call, and release the lock at the end of the function call.
 
-○ In all inode functions where we are accessing/modifying items in the buffer\_cache’s
+    ○ In all inode functions where we are accessing/modifying items in the buffer\_cache’s
 
-cached\_inodes list, we acquire buffer\_cache\_item’s buffer\_cache\_item\_lock as soon as
+    cached\_inodes list, we acquire buffer\_cache\_item’s buffer\_cache\_item\_lock as soon as
 
-we remove the item from the list. We release the lock after inserting it back into the
+    we remove the item from the list. We release the lock after inserting it back into the
 
-cached\_inodes list or before discarding the struct.
+    cached\_inodes list or before discarding the struct.
 
-Rationale
+    Rationale
 
-The design decisions of the buffer cache is designed with the acknowledged constraint of a
+    The design decisions of the buffer cache is designed with the acknowledged constraint of a
 
-buffer with a capacity of 64 blocks. We chose to use the LRU eviction policy based on MIN
+    buffer with a capacity of 64 blocks. We chose to use the LRU eviction policy based on MIN
 
-based on locality assumptions. This design ensures a simple approach to implementing a
+    based on locality assumptions. This design ensures a simple approach to implementing a
 
-buffer.
+    buffer.
 
-We also took advantage of the double-ended nature of the pintos list implementation to
+    We also took advantage of the double-ended nature of the pintos list implementation to
 
-efficiently implement the LRU eviction policy - new items are added to the end of the list, and
+    efficiently implement the LRU eviction policy - new items are added to the end of the list, and
 
-the next items to be evicted evicted items are removed from the head (front of the list), allowing
+    the next items to be evicted evicted items are removed from the head (front of the list), allowing
 
-this process to run in constant time.
+    this process to run in constant time.
 
-In regards to the write-back nature of the buffer cache, we use a dirty bit to denote if the block
+    In regards to the write-back nature of the buffer cache, we use a dirty bit to denote if the block
 
-has been modified. As aligned with the expectations of a write-back cache, our code only writes
+    has been modified. As aligned with the expectations of a write-back cache, our code only writes
 
-the data to disk when the data block is evicted, improving the performance by reducing the need
+    the data to disk when the data block is evicted, improving the performance by reducing the need
 
-for unnecessary writes back to disk.
+    for unnecessary writes back to disk.
 
 
 
@@ -313,37 +224,37 @@ as well as indirect layers. Given that we need to support file growth of upto 8M
 
 we can support the file structure using the following pointers:
 
-○ block\_sector\_t double\_indirect\_ptr = 2^7 \* 2^7 \* 2^9 = 2^23B
+  ○ block\_sector\_t double\_indirect\_ptr = 2^7 \* 2^7 \* 2^9 = 2^23B
 
-○ block\_sector\_t indirect\_ptr = 2^7 \* 2^9 = 2^16B
+  ○ block\_sector\_t indirect\_ptr = 2^7 \* 2^9 = 2^16B
 
-○ block\_sector\_t direct\_ptr[12] = 2^9 \* 12
+  ○ block\_sector\_t direct\_ptr[12] = 2^9 \* 12
 
-○ Total storage exceeds 8MiB
+  ○ Total storage exceeds 8MiB
 
 We also add a lock to ensure synchronization when modifying the inode\_disk.
 
 **Changes in inode.c:**
 
-struct inode {
+  struct inode {
 
-…
+    …
 
-struct lock inode\_lock;
+  struct lock inode\_lock;
 
-}
+  }
 
-struct inode\_disk {
+  struct inode\_disk {
 
-…
+    …
 
-block\_sector\_t direct\_ptr[12]
+  block\_sector\_t direct\_ptr[12]
 
-block\_sector\_t indirect\_ptr
+  block\_sector\_t indirect\_ptr
 
-block\_sector\_t double\_indirect\_ptr
+  block\_sector\_t double\_indirect\_ptr
 
-}
+  }
 
 Algorithms
 

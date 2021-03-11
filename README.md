@@ -390,37 +390,19 @@ explained in the following sections.
 
         }
 
-Algorithm
 
-Directory Traversal Algorithm
+
+**Directory Traversal Algorithm**
 
 Implement our directory\_traverse() function which, given an argument (char\* path), recursively
 
 find the inode in our inode array down the path, and return that **inode** back
 
-directory\_tranverse(char\*path)
+directory\_tranverse(char\*path) always recombine the thread\_current()->currentWorkingDirectory and the given char\* path into one absolute path (we will 
 
-always
+implement and function called always\_absolute() to do that), and use the absolute path to traverse from the root node to the destination node. (the combination 
 
-recombine
-
-the
-
-thread\_current()
-
-->
-
-currentWorkingDirectory and the given char\* path into one absolute path (we will implement and
-
-function called always\_absolute() to do that), and use the absolute path to traverse from the root
-
-
-
-
-
-node to the destination node. (the combination will deal with different scenarios when it’s given
-
-an absolute, relative, .. or . path)
+will deal with different scenarios when it’s given an absolute, relative, .. or . path)
 
 **always\_absolute(char\* path)**:
 
@@ -560,28 +542,7 @@ the syscall open.
 
 **close**:
 
-➢ Before
-
-termination,
-
-we
-
-need
-
-to
-
-close
-
-the
-
-inode
-
-using
-
-inode\_close(lookup\_fd(fd)->file->inode)
-
-
-
+➢ Before termination, we need to close the inode using inode\_close(lookup\_fd(fd)->file->inode)
 
 
 **exec**:
@@ -624,17 +585,9 @@ we introduced to the inode struct in the previous task.
 
 ➢ Whenever we call operations such as write or read, we use lookup\_fd() to retrieve the
 
-associated
+associated file\_descriptor struct. From this struct, we can look up file\_descriptor->file->inode to check the file’s inode
 
-file\_descriptor
-
-struct. From this struct, we can look up
-
-file\_descriptor->file->inode to check the file’s inode
-
-➢ Once we have the file’s inode, we can acquire the lock before we do operations such as
-
-read and write. Once we are done, we release the lock.
+➢ Once we have the file’s inode, we can acquire the lock before we do operations such as read and write. Once we are done, we release the lock.
 
 ➢ This ensures synchronization at a more granular level, ensuring synchronized operations
 
